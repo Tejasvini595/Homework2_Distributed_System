@@ -142,6 +142,7 @@ Speedup: $S(P) = \frac{T(1)}{T(P)}$. Efficiency: $E(P) = \frac{S(P)}{P}$.
 ![Execution Time vs Process Count P](plots/execution_time_vs_p.png)
 ![Speedup vs Process Count P](plots/speedup_vs_p.png)
 ![Parallel Efficiency vs Process Count P](plots/efficiency_vs_p.png)
+![Communication Overhead vs Process Count P](plots/comm_overhead_vs_p.png)
 ![Computation vs Communication Breakdown](plots/comm_vs_comp_breakdown.png)
 ![MPI Bitonic Sort Performance Dashboard](plots/bitonic_sort_performance_dashboard.png)
 
