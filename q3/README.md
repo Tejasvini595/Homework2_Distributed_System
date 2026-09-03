@@ -7,7 +7,7 @@ needed for this cluster's SLURM/OpenMPI setup.
 
 ## Files
 - `bitonic_sort.cpp` — MPI bitonic sort with instrumented computation vs communication timers (main deliverable)
-- `sequential_sort.cpp` — sequential baseline, same RNG/seed, used for correctness + speedup comparison
+- `sequential_sort.cpp` — sequential baseline, same RNG/seed, used for speedup comparison
 - `run_benchmark.sh` — loops over P = 1,2,4,8 and several N, records timing + comp/comm breakdown into `results.csv`, and prints pass/fail summary (`Total: 16 Pass: 16 Fail: 0`)
 - `job.slurm` — SLURM batch script that runs the same sweep via `mpirun` (see Section 5 note on `srun`)
 
