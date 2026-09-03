@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     long long N;
     long long K;
     long long S;
-    (*in) >> N >> K >> S; // S (seed) is part of the input format but not needed for analytics
+    (*in) >> N >> K >> S; // S is part of the input format but not needed for analytics
 
     long long totalRequests = 0, successful = 0, failed = 0;
     double sumResponseTime = 0.0;

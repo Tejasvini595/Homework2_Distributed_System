@@ -1,11 +1,3 @@
-// q6_sequential.cpp
-// Sequential reference solution: Union-Find (disjoint set union).
-// Used to verify correctness of the MPI implementation.
-//
-// Output format matches q6_mpi.cpp exactly: V lines of
-// "vertex_id component_id", sorted by vertex id ascending,
-// component id = minimum vertex id in that component.
-
 #include <climits>
 #include <fstream>
 #include <iostream>

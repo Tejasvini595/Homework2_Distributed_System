@@ -1,16 +1,4 @@
-// q6_mpi.cpp
-// Parallel Connected Components via minimum-label propagation (MPI).
-//
-// Algorithm:
-//   Each vertex starts with component id = its own vertex id.
-//   Each round: every vertex takes the MIN of its current label and the
-//   current labels of all its neighbors. Repeat until no label changes
-//   anywhere (global fixed point). This converges to: component id of a
-//   vertex = minimum vertex id in its connected component.
-//
-// Note: convergence takes as many rounds as the diameter of the largest
-// component (not O(log V)). For graphs with large diameter (e.g. long
-// chains) this can be slow; see README for discussion.
+
 
 #include <mpi.h>
 
@@ -22,9 +10,8 @@
 
 using namespace std;
 
-// ------------------------------------------------------------
+
 // Determine the contiguous range of vertices owned by a rank.
-// ------------------------------------------------------------
 void get_range(int V, int P, int rank, int &start, int &end)
 {
     int base = V / P;
@@ -42,9 +29,7 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &P);
 
-    // --------------------------------------------------------
     // Input file
-    // --------------------------------------------------------
     if (argc < 2)
     {
         if (rank == 0)
@@ -57,15 +42,10 @@ int main(int argc, char **argv)
     int V;
     vector<vector<int>> graph;
 
-    // --------------------------------------------------------
     // Process 0 reads the graph and defensively symmetrizes it.
-    //
     // The propagation step below only walks edges as listed for a
-    // vertex; it assumes that if u is a neighbor of v, v is also
-    // listed as a neighbor of u. If the input format guarantees
-    // this already, the extra pass below is a cheap no-op-ish
-    // safety net (it dedupes as it goes) against a generator bug.
-    // --------------------------------------------------------
+    // vertex. it assumes that if u is a neighbor of v, v is also
+    // listed as a neighbor of u.
     if (rank == 0)
     {
         ifstream fin(filename);
@@ -90,7 +70,7 @@ int main(int argc, char **argv)
 
         // Symmetrize + dedupe (also drops self-loops, which are
         // harmless for min-propagation but pointless to keep).
-        vector<vector<char>> present; // not used; do it via sort+unique per vertex after adding reverse edges
+        vector<vector<char>> present; // not used. do it via sort+unique per vertex after adding reverse edges
         for (int v = 0; v < V; v++)
         {
             for (int u : graph[v])
@@ -110,16 +90,12 @@ int main(int argc, char **argv)
     // Send V to everyone
     MPI_Bcast(&V, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // --------------------------------------------------------
     // Determine which vertices each process owns
-    // --------------------------------------------------------
     int start, end;
     get_range(V, P, rank, start, end);
     int local_n = end - start;
 
-    // --------------------------------------------------------
     // Distribute adjacency lists (flattened: degree array + edge array)
-    // --------------------------------------------------------
     vector<int> local_degree(local_n);
     vector<int> local_edges;
 
@@ -178,16 +154,11 @@ int main(int argc, char **argv)
             MPI_Recv(local_edges.data(), edge_count, MPI_INT, 0, 103, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
 
-    // --------------------------------------------------------
     // Initial component IDs: local_component[i] <-> vertex (start+i)
-    // --------------------------------------------------------
     vector<int> local_component(local_n);
     for (int i = 0; i < local_n; i++)
         local_component[i] = start + i;
 
-    // --------------------------------------------------------
-    // Allgatherv layout (fixed for the whole run)
-    // --------------------------------------------------------
     vector<int> recvcounts(P), displacements(P);
     for (int p = 0; p < P; p++)
     {
@@ -201,15 +172,11 @@ int main(int argc, char **argv)
 
     vector<int> global_component(V);
 
-    // --------------------------------------------------------
     // Timing starts here (excludes I/O + distribution setup above)
-    // --------------------------------------------------------
     MPI_Barrier(MPI_COMM_WORLD);
     double start_time = MPI_Wtime();
 
-    // --------------------------------------------------------
     // Label propagation to fixed point
-    // --------------------------------------------------------
     int iterations = 0;
     // Safety cap: correct execution should never need more than V
     // rounds (diameter <= V-1). Guards against a logic bug hanging.
@@ -289,10 +256,8 @@ int main(int argc, char **argv)
     MPI_Reduce(&comp_time_local, &total_comp_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     MPI_Reduce(&comm_time_local, &total_comm_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-    // --------------------------------------------------------
     // Output: exactly V lines of "vertex_id component_id", sorted
     // by vertex id ascending. Nothing else goes to stdout.
-    // --------------------------------------------------------
     if (rank == 0)
     {
         ios_base::sync_with_stdio(false);

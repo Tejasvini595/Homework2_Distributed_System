@@ -9,13 +9,6 @@
 #SBATCH --error=benchmark_%j.err
 #SBATCH --partition=debug
 
-# ------------------------------------------------------------
-# This allocates 2 nodes x 4 tasks/node = 8 ranks total.
-# We then run mpirun -np P for P in {1,2,4,8} INSIDE this single
-# allocation (mpirun just uses as many ranks as requested out of
-# what's been allocated) -- this matches the pattern in the
-# benchmark template provided for the assignment.
-# ------------------------------------------------------------
 
 module load hpcx-2.7.0/hpcx-ompi
 

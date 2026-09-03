@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-"""
-plot_results.py - Read a benchmark CSV (produced by run_benchmarks.sh)
-with columns: graph,type,V,E,P,iterations,time_seconds,comp_time,comm_time,other_time
-
-and produce:
-  1. speedup_vs_p.png         Speedup = T(1)/T(P) vs P, one line per graph, ideal reference
-  2. efficiency_vs_p.png      Efficiency = Speedup/P vs P (decimal), one line per graph
-  3. efficiency_vs_p_pct.png  Same as above, but on a 0-100% scale
-  4. time_vs_p.png            Execution time (log scale) vs P, one line per graph
-  5. time_vs_e.png            Execution time (log-log) vs number of edges, one line per P
-  6. comm_overhead_vs_p.png   Communication time as % of total time vs P, one line per graph
-  7. summary_table.csv        graph,P,time,speedup,efficiency,comp_time,comm_time,
-                               other_time,comm_overhead_pct
-
-Usage: python3 plot_results.py [benchmark_results.csv]
-"""
 import csv
 import sys
 from collections import defaultdict

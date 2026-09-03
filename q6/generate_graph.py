@@ -1,23 +1,4 @@
 #!/usr/bin/env python3
-"""
-generate_graph.py - Generate test/benchmark graphs in the assignment's
-adjacency-list input format:
-
-    V
-    k v1 v2 ... vk      (line for vertex 0)
-    ...                 (V lines total)
-
-Edges are written symmetrically (if u appears in v's list, v appears in
-u's list), matching the convention the MPI/sequential programs expect.
-
-Usage:
-    python3 generate_graph.py --type random   --V 1000 --E 5000  --out g.txt
-    python3 generate_graph.py --type chain    --V 1000           --out g.txt
-    python3 generate_graph.py --type star     --V 1000           --out g.txt
-    python3 generate_graph.py --type clustered --V 1000 --clusters 10 --out g.txt
-    python3 generate_graph.py --type disconnected --V 1000 --out g.txt   # E=0
-    python3 generate_graph.py --type dupes_selfloops --V 20 --out g.txt  # correctness edge case
-"""
 import argparse
 import random
 import sys

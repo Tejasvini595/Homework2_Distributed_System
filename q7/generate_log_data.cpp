@@ -1,25 +1,3 @@
-// generate_log_data.cpp
-// Q7 — Reproducible dataset generator for Large-Scale Server Log Analytics
-//
-// Produces a file in the exact input format expected by log_analytics_seq.cpp:
-//   First line: N K S
-//   Next N lines: timestamp server_id endpoint_id user_id status_code response_time bytes_sent
-//
-// Determinism: uses std::mt19937 (a fully specified, platform-independent
-// algorithm) seeded with the given SEED, so the same SEED always produces
-// byte-identical output regardless of machine/OS/compiler.
-//
-// Usage:
-//   ./generate_log_data N K SEED [num_servers] [num_endpoints] [num_users] [time_range_seconds] [output_file]
-//
-// Defaults if the optional args are omitted:
-//   num_servers=50   num_endpoints=100   num_users=10000
-//   time_range_seconds = 86400 (24 hours, so timestamps are 0..86399)
-//   output_file = "log_data_<N>_<SEED>.txt"
-//
-// Compilation:
-//   g++ -O2 -std=c++17 -o generate_log_data generate_log_data.cpp
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>

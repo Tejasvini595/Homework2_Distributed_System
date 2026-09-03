@@ -4,7 +4,6 @@
 #SBATCH --output=q6_%j.log
 #SBATCH --partition=debug
 
-# ------------------------------------------------------------
 # Run a single P value against a single input file. Submit with:
 #
 #   sbatch --nodes=1 --ntasks-per-node=1 run_single.slurm sample.txt   # P=1
@@ -14,7 +13,6 @@
 #
 # (nodes/ntasks-per-node passed on the sbatch command line override
 # any #SBATCH defaults in this file, so P = nodes * ntasks-per-node.)
-# ------------------------------------------------------------
 
 module load hpcx-2.7.0/hpcx-ompi
 

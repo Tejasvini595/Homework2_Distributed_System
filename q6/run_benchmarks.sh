@@ -19,11 +19,9 @@ mkdir -p "$GDIR"
 
 echo "graph,type,V,E,P,iterations,time_seconds,comp_time,comm_time,other_time" > "$OUT_CSV"
 
-# ------------------------------------------------------------
 # Graph set: matches the (V, E) sizes your friend used, named
 # graph_<V>_<E> for direct comparison, plus the chain/clustered
 # graphs from the diameter-effect analysis already in the report.
-# ------------------------------------------------------------
 GRAPH_SPECS=(
    "random 1000 3000 rand_1k"
     "random 10000 30000 rand_10k"
