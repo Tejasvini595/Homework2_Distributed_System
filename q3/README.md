@@ -1,4 +1,3 @@
-
 # Q3 — Distributed Bitonic Sort (MPI)
 
 Verified end-to-end on the IIIT-H `rce` cluster (`rce.iiit.ac.in`), partition
@@ -139,17 +138,14 @@ Obtained via `run_benchmark.sh` (reconciled exactly with `results.csv`):
 
 | P | Time (sec) | Comp Time (s) | Comm Time (s) | Correctness | Speedup vs P=1 | Efficiency |
 |---|---|---|---|---|---|---|
-| 1 | 0.071311 | 0.071310 | 0.000000 | PASS | 1.00× | 100.0% |
-| 2 | 0.044075 | 0.042052 | 0.001317 | PASS | 1.62× | 80.9% |
-| 4 | 0.035859 | 0.032800 | 0.004207 | PASS | 1.99× | 49.7% |
-| 8 | 0.022236 | 0.019596 | 0.001852 | PASS | 3.21× | 40.1% |
+| 1 | 0.069343 | 0.069343 | 0.000000 | PASS | 1.00× | 100.0% |
+| 2 | 0.073484 | 0.071592 | 0.001278 | PASS | 0.94× | 47.2% |
+| 4 | 0.084093 | 0.081121 | 0.021055 | PASS | 0.82× | 20.6% |
+| 8 | 0.058333 | 0.056145 | 0.004907 | PASS | 1.19× | 14.9% |
 
-Sequential baseline (`sequential_sort`): ~0.0713 sec — matches P=1 (`0.071311` s) closely, as expected (P=1 has no inter-process communication overhead).
+Sequential baseline (`sequential_sort`): ~0.0693 sec — matches P=1 (`0.069343` s) closely, as expected (P=1 has no inter-process communication overhead).
 
-**Interpretation for your analysis write-up:** speedup increases with P but
-efficiency drops (100% → 40.1%) because bitonic sort's communication rounds
-grow as O(log²P), while the per-process compute shrinks as P grows — so
-communication overhead becomes proportionally larger (reaching 8.3% of total time at P=8 for N=1M, and up to 24.8% at P=4 for N=4M).
+**Interpretation for your analysis write-up:** Maximum speedup is achieved at $P=8$ for large $N$ (e.g. $1.25\times$ for $N=65\text{K}$ and $1.19\times$ for $N=1\text{M}$; $1.19\times$ at $P=4$ for $N=4\text{M}$). Parallel efficiency decreases as process count $P$ increases due to the $O(\log^2 P)$ communication exchange rounds and message synchronization overhead across nodes.
 
 Program correctly handles input validation constraints (`N, P` powers of 2, `N % P == 0`), exiting cleanly with exit code 1 if violated. Edge cases handled cleanly: P=1 (falls back to a single local sort, 0 MPI exchanges needed) and P=N (1 element per process).
 
@@ -224,19 +220,20 @@ Efficiency(P) = Speedup(P) / P
 
 ## 11. Algorithm notes (how the code matches the spec)
 
-1. **Local sort**: each rank sorts its own `N/P` chunk ascending with `std::sort`.
-   *Note on formulation*: The assignment examples show alternating initial sort directions (e.g. process 1 sorted descending). In our parallel code, we use the standard, equivalent hypercube bitonic merge network formulation (Grama et al.), where all ranks sort ascending initially, and pairwise compare-split directions (`keepLow`) are dynamically assigned via bitwise operations (`(((rank >> (i + 1)) & 1) == 0)`). Final gathered output is identical and provably correct across all inputs.
-2. **Bitonic merge network across ranks**: for `i = 0..log2(P)-1`, `j = i..0`,
-   each rank exchanges its full local chunk with `partner = rank XOR (1<<j)`
-   via `MPI_Sendrecv`, merges the two sorted chunks, and keeps the low or
-   high half depending on the bitwise block direction.
+1. **Initial Local Sort**: Each rank sorts its own `N/P` chunk based on its rank parity:
+   - Even ranks (`(rank & 1) == 0`) sort ascending using `std::sort`.
+   - Odd ranks (`(rank & 1) == 1`) sort descending using `std::sort(..., std::greater<int>())`.
+   - This ensures adjacent initial process pairs form bitonic sequences (e.g. $P_0$ (asc) + $P_1$ (desc) = bitonic sequence).
+2. **Bitonic Merge Network across Ranks**: For stage $i = 0 \dots \log_2(P)-1$ and substage $j = i \dots 0$:
+   - Each rank exchanges its local chunk with `partner = rank ^ (1 << j)` via `MPI_Sendrecv`.
+   - Ranks perform **position-wise compare-exchange**:
+     - Ascending blocks (`((rank >> (i + 1)) & 1) == 0`): lower rank keeps `min(local[k], other[k])`, higher rank keeps `max(local[k], other[k])`.
+     - Descending blocks (`((rank >> (i + 1)) & 1) != 0`): lower rank keeps `max(local[k], other[k])`, higher rank keeps `min(local[k], other[k])`.
+   - Ranks **re-sort locally**:
+     - Local sort direction is determined by bit $(j - 1)$ of rank when $j > 0$, or bit $(i + 1)$ when $j = 0$.
 3. **Gather**: `MPI_Gather` reconstructs the full sorted array at rank 0.
-4. **Correctness verification**: rank 0 independently sorts the same input
-   with `std::sort` and compares it to the gathered result (`PASS`/`FAIL`
-   printed to stderr).
-5. Debug/info prints go to **stderr**; only the final sorted output goes to
-   **stdout**, per the "do not print debugging information as part of the
-   required program output" instruction.
+4. **Correctness verification**: rank 0 independently sorts the same input with `std::sort` and compares it to the gathered result (`PASS`/`FAIL` printed to stderr).
+5. Debug/info prints go to **stderr**; only the final sorted output goes to **stdout**, per the "do not print debugging information as part of the required program output" instruction.
 
 ## 12. Troubleshooting quick reference
 
