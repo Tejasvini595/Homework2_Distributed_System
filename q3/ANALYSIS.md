@@ -67,9 +67,6 @@ To validate correctness across structural, edge, and production scaling cases, t
 
 | Test Case / Input Size | Processes ($P$) | Purpose / Nature of Verification |
 | :--- | :--- | :--- |
-| $N = 4, P = 2$ | 2 | Assignment Example 1 — minimal verification |
-| $N = 8, P = 2, 4, 8$ | 2, 4, 8 | Assignment Example 2 — verification ($N=P$ edge case for $P=8$) |
-| $N = 1024, P = 1, 2, 4, 8$ | 1, 2, 4, 8 | Small dataset baseline & $P=1$ purely local sort edge case |
 | $N = 65,536$ (65K) | 1, 2, 4, 8 | Medium input benchmark |
 | $N = 262,144$ (256K) | 1, 2, 4, 8 | Intermediate scale benchmark |
 | $N = 1,048,576$ (1M) | 1, 2, 4, 8 | Large scale benchmark |
