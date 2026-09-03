@@ -132,51 +132,7 @@ cluster, so OpenMPI automatically falls back to its shared-memory (`vader`)
 transport. The program still runs correctly — always check for
 `correctness=PASS` on stderr, which is the real pass/fail signal.
 
-## 7. Actual verified results (this cluster, N = 1,048,576, seed = 42)
-
-Obtained via `run_benchmark.sh` (reconciled exactly with `results.csv`):
-
-| P | Time (sec) | Comp Time (s) | Comm Time (s) | Correctness | Speedup vs P=1 | Efficiency |
-|---|---|---|---|---|---|---|
-| 1 | 0.069343 | 0.069343 | 0.000000 | PASS | 1.00× | 100.0% |
-| 2 | 0.073484 | 0.071592 | 0.001278 | PASS | 0.94× | 47.2% |
-| 4 | 0.084093 | 0.081121 | 0.021055 | PASS | 0.82× | 20.6% |
-| 8 | 0.058333 | 0.056145 | 0.004907 | PASS | 1.19× | 14.9% |
-
-Sequential baseline (`sequential_sort`): ~0.0693 sec — matches P=1 (`0.069343` s) closely, as expected (P=1 has no inter-process communication overhead).
-
-**Interpretation for your analysis write-up:** Maximum speedup is achieved at $P=8$ for large $N$ (e.g. $1.25\times$ for $N=65\text{K}$ and $1.19\times$ for $N=1\text{M}$; $1.19\times$ at $P=4$ for $N=4\text{M}$). Parallel efficiency decreases as process count $P$ increases due to the $O(\log^2 P)$ communication exchange rounds and message synchronization overhead across nodes.
-
-Program correctly handles input validation constraints (`N, P` powers of 2, `N % P == 0`), exiting cleanly with exit code 1 if violated. Edge cases handled cleanly: P=1 (falls back to a single local sort, 0 MPI exchanges needed) and P=N (1 element per process).
-
-## 8. Batch submission with `sbatch` (recommended — avoids interactive timeouts)
-
-`job.slurm` in this repo is already configured for this cluster:
-`--partition=debug`, `module load openmpi/4.1.5` uncommented, and using
-`mpirun -np $P ./bitonic_sort $N $SEED` (NOT `srun`, per Section 5).
-
-```bash
-sbatch job.slurm
-squeue -u $USER
-```
-
-The job typically completes in well under a minute (sub-second per run),
-so it may disappear from `squeue` before you check — that's normal, not a
-failure. Look for the output files directly:
-
-```bash
-ls -la bitonic_<jobid>.out bitonic_<jobid>.err
-cat bitonic_<jobid>.out
-cat bitonic_<jobid>.err
-```
-
-If you want to confirm what happened to a job that's no longer in the
-queue:
-```bash
-sacct -j <jobid> --format=JobID,JobName,State,Elapsed,ExitCode
-```
-
-## 9. SLURM commands cheat sheet
+## 7. SLURM commands cheat sheet
 
 | Command | Purpose |
 |---|---|
@@ -190,7 +146,7 @@ sacct -j <jobid> --format=JobID,JobName,State,Elapsed,ExitCode
 | `scancel -u $USER` | Cancel all your own jobs |
 | `scontrol show job <jobid>` | Detailed info about a specific job |
 
-## 10. Benchmark script (P=1,2,4,8 sweep across sizes)
+## 8. Benchmark script (P=1,2,4,8 sweep across sizes)
 
 ```bash
 salloc --nodes=1 --ntasks=8 --time=00:20:00 --partition=debug
@@ -218,7 +174,7 @@ Speedup(P)    = T(1) / T_parallel(P)
 Efficiency(P) = Speedup(P) / P
 ```
 
-## 11. Algorithm notes (how the code matches the spec)
+## 9. Algorithm notes (how the code matches the spec)
 
 1. **Initial Local Sort**: Each rank sorts its own `N/P` chunk based on its rank parity:
    - Even ranks (`(rank & 1) == 0`) sort ascending using `std::sort`.
@@ -235,7 +191,7 @@ Efficiency(P) = Speedup(P) / P
 4. **Correctness verification**: rank 0 independently sorts the same input with `std::sort` and compares it to the gathered result (`PASS`/`FAIL` printed to stderr).
 5. Debug/info prints go to **stderr**; only the final sorted output goes to **stdout**, per the "do not print debugging information as part of the required program output" instruction.
 
-## 12. Troubleshooting quick reference
+## 10. Troubleshooting quick reference
 
 | Symptom | Cause | Fix |
 |---|---|---|
