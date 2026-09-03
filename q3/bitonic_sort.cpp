@@ -33,30 +33,6 @@ static int log2i(int x) {
     return r;
 }
 
-// Merge two ascending-sorted vectors 'mine' and 'other' (equal length n each)
-// and keep either the lower n elements or the upper n elements of the
-// merged (2n)-length ascending sequence, writing the result back into
-// 'mine' (still ascending).
-static void compareSplit(std::vector<int>& mine, const std::vector<int>& other, bool keepLow) {
-    int n = (int)mine.size();
-    std::vector<int> merged;
-    merged.reserve(2 * n);
-
-    int i = 0, j = 0;
-    while (i < n && j < n) {
-        if (mine[i] <= other[j]) merged.push_back(mine[i++]);
-        else merged.push_back(other[j++]);
-    }
-    while (i < n) merged.push_back(mine[i++]);
-    while (j < n) merged.push_back(other[j++]);
-
-    if (keepLow) {
-        mine.assign(merged.begin(), merged.begin() + n);
-    } else {
-        mine.assign(merged.begin() + n, merged.end());
-    }
-}
-
 // -------------------- Main --------------------
 
 int main(int argc, char** argv) {
@@ -116,31 +92,26 @@ int main(int argc, char** argv) {
     double comp_time = 0.0;
     double comm_time = 0.0;
 
-    // ---- Step 1: local sort (ascending) ----
-    // Note on algorithm formulation: Each rank sorts its local chunk ascending.
-    // The direction of pairwise compares in the hypercube network (keepLow)
-    // is dynamically determined by rank bit combinations (Grama et al. formulation),
-    // which is mathematically equivalent to alternating initial sort directions.
+    // ---- Step 1: Initial local sort ----
+    // As per Homework 2 Question 3 specification:
+    // Even ranks sort ascending, odd ranks sort descending so that initial process pairs form bitonic sequences.
     double tc0 = MPI_Wtime();
-    std::sort(local.begin(), local.end());
+    if ((rank & 1) == 0) {
+        std::sort(local.begin(), local.end());
+    } else {
+        std::sort(local.begin(), local.end(), std::greater<int>());
+    }
     comp_time += (MPI_Wtime() - tc0);
 
-    // ---- Step 2: bitonic merge network across processes ----
+    // ---- Step 2: Bitonic merge network across processes ----
     int d = log2i(P); // number of processes = 2^d
 
     for (int i = 0; i < d; i++) {
         for (int j = i; j >= 0; j--) {
             int partner = rank ^ (1 << j);
 
-            // ascending block if bit (i+1) of rank is 0
-            bool ascendingBlock = (((rank >> (i + 1)) & 1) == 0);
-
-            bool keepLow;
-            if (rank < partner) {
-                keepLow = ascendingBlock;   // ascending -> keep smaller half
-            } else {
-                keepLow = !ascendingBlock;  // descending -> keep larger half
-            }
+            // Block direction for stage i: bit (i+1) of rank being 0 means ascending block
+            bool ascBlock = (((rank >> (i + 1)) & 1) == 0);
 
             std::vector<int> other(localN);
 
@@ -151,7 +122,34 @@ int main(int argc, char** argv) {
             comm_time += (MPI_Wtime() - tm0);
 
             tc0 = MPI_Wtime();
-            compareSplit(local, other, keepLow);
+            // Position-wise compare-exchange
+            std::vector<int> next_local(localN);
+            for (int k = 0; k < localN; k++) {
+                if (ascBlock) {
+                    // Ascending block: lower rank gets min, higher rank gets max
+                    if (rank < partner) {
+                        next_local[k] = std::min(local[k], other[k]);
+                    } else {
+                        next_local[k] = std::max(local[k], other[k]);
+                    }
+                } else {
+                    // Descending block: lower rank gets max, higher rank gets min
+                    if (rank < partner) {
+                        next_local[k] = std::max(local[k], other[k]);
+                    } else {
+                        next_local[k] = std::min(local[k], other[k]);
+                    }
+                }
+            }
+            local = std::move(next_local);
+
+            // Re-sort locally
+            bool localAsc = (j > 0) ? (((rank >> (j - 1)) & 1) == 0) : (((rank >> (i + 1)) & 1) == 0);
+            if (localAsc) {
+                std::sort(local.begin(), local.end());
+            } else {
+                std::sort(local.begin(), local.end(), std::greater<int>());
+            }
             comp_time += (MPI_Wtime() - tc0);
         }
     }
